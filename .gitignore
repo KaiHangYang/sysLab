@@ -1,2 +1,6 @@
 a
 b
+*.o
+get
+put
+copy
