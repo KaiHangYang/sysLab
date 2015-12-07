@@ -1,3 +1,5 @@
+#include <sys/sem.h>
+#include <sys/types.h>
 #include "pv.h"
 // P 操作
 void P (int semid, int index) {

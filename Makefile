@@ -1,5 +1,5 @@
 a: main.o get put copy 
-	gcc -o a main.o
+	gcc -o a main.o -lpv -L./
 get: get.o
 	gcc -o get get.o -lpv -L./
 copy: copy.o

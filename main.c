@@ -1,20 +1,46 @@
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <fcntl.h>
-#include <linux/sem.h>
-#include <linux/shm.h>
+#include <sys/shm.h>
+#include <sys/sem.h>
 #include <string.h>
 #include "common.h"
+#include <assert.h>
+#include <errno.h>
+#include "pv.h"
 
-int semid;
-int shmids;
-int shmidt;
+/*
+#include <linux/sem.h>
+#include <linux/ipc.h>
+#include <sys/types.h>
+#include <errno.h>
+#include <stdio.h>
+*/
+
+/*int P(int semid, int index);*/
+/*void V(int semid, int index);*/
 
 int main () {
+    /*int result;*/
+    /*semid = semget(SEMKEY, 1, IPC_CREAT);*/
+    /*if (semid == -1) {*/
+        /*printf("Error 1!\n");*/
+        /*return 0;*/
+    /*}*/
+    /*union semun arg;*/
+    /*arg.val = 0; // 设置信号量的值*/
+    /*result = semctl(semid, 0, SETVAL, arg);*/
+
+    /*P(semid, 0);*/
     int result;
+    void * shms = NULL;
+    void * shmt = NULL;
+    int semid;
+    int shmids;
+    int shmidt;
     pid_t p1, p2, p3, p4;
     // 创建信号灯
     semid = semget(SEMKEY, NUM, IPC_CREAT);
@@ -27,9 +53,46 @@ int main () {
     result = semctl(semid, 2, SETVAL, arg);
     arg.val = 0; // 初始化信号量 full2
     result = semctl(semid, 3, SETVAL, arg);
+    if (result == -1) {
+        printf("Error 2!\n");
+        if (errno == EACCES) {
+            printf("1\n");
+        }
+        else if (errno == EFAULT){
+            printf("2\n");
+        }
+        else if (errno == EINVAL) {
+            printf("3\n");
+        }
+        return 0;
+    }
+
+    shmids = shmget((key_t)SHMKEYS, sizeof(bufType), IPC_CREAT|0666);
+    shmidt = shmget((key_t)SHMKEYT, sizeof(bufType), IPC_CREAT|0666);
     
-    shmids = shmget(SHMKEYS, MEMSZ, IPC_CREAT);
-    shmidt = shmget(SHMKEYT, MEMSZ, IPC_CREAT);
+    if (shmids == -1 || shmidt == -1)  {
+        fprintf(stderr, "shmget failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    shms = shmat(shmids, 0, 0);
+    shmt = shmat(shmidt, 0, 0);
+    
+    if(shms == (void*)-1 || shmt == (void*)-1)  {  
+        fprintf(stderr, "shmat failed\n");  
+        exit(EXIT_FAILURE);  
+    }
+    bufType *tmpbuf = (bufType *)shms;
+    tmpbuf->isEnd = 0;
+    memset(tmpbuf->data, 0, MAXLENGTH);
+    tmpbuf = (bufType *)shmt;
+    tmpbuf->isEnd = 0;
+    memset(tmpbuf->data, 0, MAXLENGTH);
+
+    if(shmids == -1 || shmidt == -1)  {  
+        fprintf(stderr, "shmget failed\n");  
+        exit(EXIT_FAILURE);  
+    }
 
     if ((p1 = fork()) == 0) {
         // sub 进程
@@ -52,9 +115,30 @@ int main () {
     // 等待结束
     pid_t pid = wait(NULL); // 等待所有子进程结束
     semctl(semid, 0, IPC_RMID, NULL);
+    printf("结束了\n");
     // 删除共享内存
     shmctl(shmids, IPC_RMID, 0);
     shmctl(shmidt, IPC_RMID, 0);
     return 0;
 }
+// P 操作
+/*int P (int semid, int index) {*/
+    /*struct sembuf sem;*/
+
+    /*sem.sem_num = index;*/
+    /*sem.sem_op = -1;*/
+    /*sem.sem_flg = 0; // 操作标记： 0 或者IPC_NOWAIT*/
+     /*// 1表示执行命令的个数*/
+    /*return semop(semid , &sem, 1);*/
+/*}*/
+/*// V操作*/
+/*void V(int semid, int index) {*/
+    /*struct sembuf sem;*/
+    /*sem.sem_num = index;*/
+    /*sem.sem_op = 1;*/
+    /*sem.sem_flg = 0;*/
+
+    /*semop(semid, &sem, 1);*/
+    /*return;*/
+/*}*/
 
