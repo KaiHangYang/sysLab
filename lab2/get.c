@@ -19,7 +19,11 @@ int main () {
     
     void * tmpS = shmat(shmids, 0, 0);
     bufType * S = (bufType *)tmpS;
-    FILE * f = fopen("/home/fog/Dev/sysLab/from.dat", "rb");
+    FILE * f = fopen("from.dat", "rb");
+    if (f == NULL) {
+        printf("文件打开错误\n");
+        exit(-1);
+    }
     fseek(f, 0l, SEEK_END);
     size_t filesize = ftell(f);
     fseek(f, 0l, SEEK_SET);
@@ -34,6 +38,7 @@ int main () {
         S->len = count;
         sizecount += count;
         if (sizecount >= filesize) {
+            printf("文件读完了\n");
             S->isEnd = 1;
         }
         V(semid, 1); // full1

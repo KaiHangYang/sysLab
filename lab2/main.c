@@ -113,7 +113,11 @@ int main () {
         }
     }
     // 等待结束
-    pid_t pid = wait(NULL); // 等待所有子进程结束
+    // 发现这里等待程序结束的wait函数有些问题 wait 只是等待一个进程结束就返回了
+    waitpid(p1, NULL, 0);
+    waitpid(p2, NULL, 0);
+    waitpid(p3, NULL, 0);
+
     semctl(semid, 0, IPC_RMID, NULL);
     printf("结束了\n");
     // 删除共享内存
